@@ -232,7 +232,11 @@ if not df_nfl.empty:
         if "턴오버" in category: display_table[f"격차 ({team1} - {team2})"] = gap_values.apply(lambda x: f"{int(x)}")
         else: display_table[f"격차 ({team1} - {team2})"] = gap_values.apply(lambda x: f"{x:.2f}")
             
-        st.dataframe(display_table, use_container_width=True)
+        st.dataframe(
+            display_table, 
+            use_container_width=True, 
+            height=(len(display_table) + 1) * 35  # 데이터 개수 * 행 높이(35px)만큼 높이 자동 할당
+        )
         
         st.write("---")
         st.subheader("📉 스탯별 나란히 비교 그래프")

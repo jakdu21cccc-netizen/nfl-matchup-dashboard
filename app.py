@@ -61,7 +61,7 @@ STAT_CATEGORIES = {
 }
 
 # 3. 데이터 로드 및 전처리
-@st.cache_data(show_spinner="NFLverse 데이터를 분석하고 경기장 배경을 불러오는 중입니다...")
+@st.cache_data(show_spinner="NFLverse 데이터를 분석하고 디자인 리소스를 불러오는 중입니다...", ttl=3600)
 def get_nfl_data(season=2025):
     try:
         team_meta = nfl.import_team_desc()[['team_abbr', 'team_name', 'team_logo_espn', 'team_color']]

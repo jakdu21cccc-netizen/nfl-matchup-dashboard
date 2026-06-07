@@ -42,17 +42,17 @@ st.markdown("""
 
 st.title("🏈 NFL Matchup: Team Stats Comparison")
 
-# 2. 스탯 카테고리 정의
+# 2. 스탯 카테고리 정의 (색 허용 및 색 창출 추가)
 STAT_CATEGORIES = {
     "공격 스탯(경기당)": [
         "평균득점", "토탈평균획득야드", "플레이 당 획득 거리", "터치다운 수",
         "평균 러싱플레이 시도 횟수", "러싱 야드", "러싱 터치다운 수", "러싱 플레이당 거리",
-        "평균 패싱플레이 시도 횟수", "패싱 야드", "패싱 터치다운 수", "패싱 플레이당 거리"
+        "평균 패싱플레이 시도 횟수", "패싱 야드", "패싱 터치다운 수", "패싱 플레이당 거리", "색 허용"
     ],
     "수비 스탯(경기당)": [
         "허용득점", "토탈허용평균야드", "플레이 당 허용 거리", "허용 터치다운 수",
         "허용 평균 러싱플레이 시도 횟수", "허용 러싱 야드", "허용 러싱 터치다운 수", "허용 러싱 플레이당 거리",
-        "허용 평균 패싱플레이 시도 횟수", "허용 패싱 야드", "허용 패싱터치다운 수", "허용 패싱플레이당 거리"
+        "허용 평균 패싱플레이 시도 횟수", "허용 패싱 야드", "허용 패싱터치다운 수", "허용 패싱플레이당 거리", "색 창출"
     ],
     "턴오버 스탯(시즌 누적)": [
         "턴오버 마진", "턴오버 창출", "턴오버 허용", 
@@ -76,13 +76,16 @@ def get_nfl_data(season=2025):
         pbp = nfl.import_pbp_data([season])
         pbp = pbp[(pbp['season_type'] == 'REG') & pbp['posteam'].notna()]
         
+        # 색(sack) 데이터 합산 추가
         off = pbp.groupby('posteam').agg(
             총플레이수=('play_id', 'count'), 총야드=('yards_gained', 'sum'), 패스시도=('pass_attempt', 'sum'), 패스야드=('passing_yards', 'sum'), 패스TD=('pass_touchdown', 'sum'),
-            러싱시도=('rush_attempt', 'sum'), 러싱야드=('rushing_yards', 'sum'), 러싱TD=('rush_touchdown', 'sum'), 인터셉트허용=('interception', 'sum'), 펌블허용=('fumble_lost', 'sum')
+            러싱시도=('rush_attempt', 'sum'), 러싱야드=('rushing_yards', 'sum'), 러싱TD=('rush_touchdown', 'sum'), 인터셉트허용=('interception', 'sum'), 펌블허용=('fumble_lost', 'sum'),
+            색허용=('sack', 'sum')
         )
         def_pbp = pbp.groupby('defteam').agg(
             허용총플레이수=('play_id', 'count'), 허용총야드=('yards_gained', 'sum'), 허용패스시도=('pass_attempt', 'sum'), 허용패스야드=('passing_yards', 'sum'), 허용패스TD=('pass_touchdown', 'sum'),
-            허용러싱시도=('rush_attempt', 'sum'), 허용러싱야드=('rushing_yards', 'sum'), 허용러싱TD=('rush_touchdown', 'sum'), 인터셉트유도=('interception', 'sum'), 펌블리커버리=('fumble_lost', 'sum')
+            허용러싱시도=('rush_attempt', 'sum'), 허용러싱야드=('rushing_yards', 'sum'), 허용러싱TD=('rush_touchdown', 'sum'), 인터셉트유도=('interception', 'sum'), 펌블리커버리=('fumble_lost', 'sum'),
+            색창출=('sack', 'sum')
         )
         
         stats = team_games.join(off).join(def_pbp).fillna(0)
@@ -94,7 +97,8 @@ def get_nfl_data(season=2025):
                 "터치다운 수": (row['패스TD'] + row['러싱TD']) / g, "평균 러싱플레이 시도 횟수": row['러싱시도'] / g,
                 "러싱 야드": row['러싱야드'] / g, "러싱 터치다운 수": row['러싱TD'] / g, "러싱 플레이당 거리": row['러싱야드'] / max(row['러싱시도'], 1),
                 "평균 패싱플레이 시도 횟수": row['패스시도'] / g, "패싱 야드": row['패스야드'] / g,
-                "패싱 터치다운 수": row['패스TD'] / g, "패싱 플레이당 거리": row['패스야드'] / max(row['패스시도'], 1)
+                "패싱 터치다운 수": row['패스TD'] / g, "패싱 플레이당 거리": row['패스야드'] / max(row['패스시도'], 1), 
+                "색 허용": row['색허용'] / g
             }
             for k, v in off_map.items(): final_rows.append({"팀명": team, "카테고리": "공격 스탯(경기당)", "스탯명": k, "수치": v})
                 
@@ -103,7 +107,8 @@ def get_nfl_data(season=2025):
                 "허용 터치다운 수": (row['허용패스TD'] + row['허용러싱TD']) / g, "허용 평균 러싱플레이 시도 횟수": row['허용러싱시도'] / g,
                 "허용 러싱 야드": row['허용러싱야드'] / g, "허용 러싱 터치다운 수": row['허용러싱TD'] / g, "허용 러싱 플레이당 거리": row['허용러싱야드'] / max(row['허용러싱시도'], 1),
                 "허용 평균 패싱플레이 시도 횟수": row['허용패스시도'] / g, "허용 패싱 야드": row['허용패스야드'] / g,
-                "허용 패싱터치다운 수": row['허용패스TD'] / g, "허용 패싱플레이당 거리": row['허용패스야드'] / max(row['허용패스시도'], 1)
+                "허용 패싱터치다운 수": row['허용패스TD'] / g, "허용 패싱플레이당 거리": row['허용패스야드'] / max(row['허용패스시도'], 1),
+                "색 창출": row['색창출'] / g
             }
             for k, v in def_map.items(): final_rows.append({"팀명": team, "카테고리": "수비 스탯(경기당)", "스탯명": k, "수치": v})
                 
@@ -118,9 +123,16 @@ def get_nfl_data(season=2025):
         rank_dfs = []
         for stat_name, group in df_result.groupby('스탯명'):
             cat = group['카테고리'].iloc[0]
+            
+            # 🌟 순위 산정 로직 정교화 (색 허용 및 색 창출 예외 처리)
             asc = False 
-            if cat == "수비 스탯(경기당)": asc = True
-            elif cat == "턴오버 스탯(시즌 누적)" and stat_name in ["턴오버 허용", "펌블 허용 수", "인터셉트 허용 수"]: asc = True
+            if cat == "수비 스탯(경기당)" and stat_name != "색 창출": 
+                asc = True # 수비 스탯은 기본적으로 낮을수록 좋음 (색 창출 제외)
+            elif cat == "공격 스탯(경기당)" and stat_name == "색 허용":
+                asc = True # 공격 스탯 중 '색 허용'만 낮을수록 좋음
+            elif cat == "턴오버 스탯(시즌 누적)" and stat_name in ["턴오버 허용", "펌블 허용 수", "인터셉트 허용 수"]: 
+                asc = True
+                
             group = group.copy()
             group['순위'] = group['수치'].rank(ascending=asc, method='min').astype(int)
             rank_dfs.append(group)
